@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Setup a ECR Repository"
+
+# Define the Name of Rpository 
+Mappings:
+     EcrName: 
+        Dev:
+          RepositoryName: 'vac01cdrecr/800'
+        Test:
+          RepositoryName: 'vac01cdrecr/600' 
+        Prod:
+          RepositoryName: 'vac01cdrecr/400'
+        PreProd:
+          RepositoryName: 'vac01cdrecr/200'
+        
+
+# Create a ECR 
+Resources:
+  ContainerRegistry:
+    Type: AWS::ECR::Repository
+    DeletionPolicy: Retain
+    Properties: 
+      ImageScanningConfiguration: 
+          ScanOnPush: True
+      ImageTagMutability: IMMUTABLE
+      RepositoryName:  
+         Fn::FindInMap: ['EcrName', 'Dev', 'RepositoryName']
+
+# Export the Output of Repository to use in other stack. 
+Outputs:
+  EcrName: 
+    Description: "ECR Container Registry name of the environment"
+    Value: !Ref ContainerRegistry
+    Export: 
+      Name: !Join [':', [!Ref 'AWS::StackName', 'RepositoryName']] 
