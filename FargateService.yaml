@@ -7,7 +7,7 @@ Description: "Deploy a service on Fraget, hosted in a Public sebnet of a VPC and
 Parameters:
   StackName: 
      Type: String 
-     Default:  Fargate-VPC-Stack
+     Default:  fargatevpctest
      Description: " Name of the Parent farget networing stack"
 
   ServiceName: 
