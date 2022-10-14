@@ -1,0 +1,158 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Deploy a service on Fraget, hosted in a Public sebnet of a VPC and exposed via a public load Balancer"
+
+
+
+# Input Paramentes 
+Parameters:
+  StackName: 
+     Type: String 
+     Default:  Fargate-VPC-Stack
+     Description: " Name of the Parent farget networing stack"
+
+  ServiceName: 
+     Type: String 
+     Default: Nginx
+     Description: "Name of the ECS service"
+     
+  ImageUrl: 
+       Type: String 
+       Default: nginx 
+       Description: The URL of docker Image name that contains the application Process that will handdle the treffice for this service. 
+
+  ContainerPort: 
+       Type: Number 
+       Default: 80
+       Description: The Port of container 
+  
+  ContainerCpu:
+      Type: Number 
+      Default: 256
+      Description: Define the CPU resources for the service. 1024 means 1 VCPU # 256 (.25 vCPU) - Available memory values: 512 (0.5 GB), 1024 (1 GB), 2048 (2 GB) 
+  
+  ContainerMemory:
+      Type: Number 
+      Default: 512
+      Description: Define the RAM on the contianer. 
+
+  Path: 
+     Type: String 
+     Default: "*"
+     Description: A Path on the public load balancer that this service should be connected to. Use * 
+                  to send all traffice from load balancer to this service. 
+
+  Priority: 
+     Type: Number
+     Default: 1 
+     Description: The Priority for the routing rule added to the load balacer. 
+                   This is only applies if you have multiple service which have been assigned to 
+                   diffrent paths on the load balancer. 
+
+  DesiredCount: 
+     Type: Number
+     Default: 1
+     Description: " Total number of Replicas of service you want to run"
+ 
+  Role:
+     Type: String 
+     Default: ""
+     Description: (Optional) An IAM to Give the service's continers if the code within need to access othe aws resources like S3 buckets, Dynamo db, openserach, rds etc. 
+     
+################## Condition ################
+Conditions:
+  HasCustomRole: !Not  [!Equals [!Ref 'Role', ' ' ]]
+
+
+################3 Task Defination #################
+
+Resources:
+  TaskDefinition: 
+    Type: AWS::ECS::TaskDefinition
+    Properties: 
+      Family: !Ref ServiceName
+      Cpu: !Ref ContainerCpu
+      Memory: !Ref ContainerMemory
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE 
+      ExecutionRoleArn: 
+        Fn::ImportValue: # !Ref StackName
+          !Join [':', [!Ref 'StackName', 'ECSTaskExecutionRole' ]]   
+      TaskRoleArn: 
+        Fn::If:
+         - 'HasCustomRole'
+         - !Ref Role
+         - !Ref "AWS::NoValue"
+      ContainerDefinitions:
+        - Name: !Ref 'ServiceName'
+          Cpu: !Ref ContainerCpu  
+          Memory: !Ref ContainerMemory
+          Image: !Ref ImageUrl 
+          PortMappings:
+            -  ContainerPort:  !Ref ContainerPort
+  # ALB Targate Group 
+  TargetGroup:
+     Type: AWS::ElasticLoadBalancingV2::TargetGroup
+     Properties:
+      HealthCheckEnabled: true 
+      HealthCheckIntervalSeconds: 6
+      HealthCheckPath: /
+      HealthCheckProtocol: HTTP 
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      TargetType: ip
+      Name: !Ref 'ServiceName'
+      Port: !Ref 'ContainerPort'
+      Protocol: HTTP 
+      UnhealthyThresholdCount: 2
+      VpcId: 
+         Fn::ImportValue:
+           !Join [ ':' , [ !Ref 'StackName', 'VPCId' ]]
+# ALB Rule
+  LoadBalancerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions: 
+        - TargetGroupArn: !Ref TargetGroup
+          Type: forward
+      ListenerArn:   
+        Fn::ImportValue:
+           !Join [ ':' , [ !Ref 'StackName', 'PublicListner' ]]      
+      Conditions:
+        - Field: path-pattern 
+          Values:
+           - !Ref Path            
+      Priority:  !Ref Priority  
+
+# ECS Fragate Service 
+
+  Service: 
+    Type: AWS::ECS::Service
+    DependsOn:
+      - LoadBalancerRule
+    Properties: 
+      ServiceName:  !Ref ServiceName
+      Cluster: 
+        Fn::ImportValue:
+           !Join [':', [!Ref 'StackName', 'ECSCluster' ]]
+      LaunchType: FARGATE
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 75
+      DesiredCount: !Ref DesiredCount
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            -  Fn::ImportValue:
+                 !Join [':', [ !Ref 'StackName', 'FargateContainerSg']]
+          Subnets:
+            -  Fn::ImportValue:
+                !Join  [ ':', [ !Ref 'StackName', 'Subnet1' ]]
+            -  Fn::ImportValue:
+                !Join  [ ':', [ !Ref 'StackName', 'Subnet2' ]]                
+      TaskDefinition: !Ref TaskDefinition
+      LoadBalancers:
+        - ContainerName: !Ref ServiceName
+        - ContainerPort:  80 #!Ref 'ContainerPort'
+        - TargetGroupArn: !Ref TargetGroup
