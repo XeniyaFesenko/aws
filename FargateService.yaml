@@ -5,7 +5,7 @@ Description: >-
 Parameters:
   StackName:
     Type: String
-    Default: fargateVPCStack
+    Default: Fargate-VPC-Stack
     Description: The name of the parent fargate networking stack
   ServiceName:
     Type: String
@@ -116,7 +116,7 @@ Resources:
         'Fn::ImportValue': !Join 
           - ':'
           - - !Ref StackName
-            - PublicListener
+            - PublicListner
       Priority: !Ref Priority
   Service:
     Type: 'AWS::ECS::Service'
@@ -127,7 +127,7 @@ Resources:
         'Fn::ImportValue': !Join 
           - ':'
           - - !Ref StackName
-            - ClusterName
+            - ECSCluster
       LaunchType: FARGATE
       DeploymentConfiguration:
         MaximumPercent: 200
@@ -140,16 +140,16 @@ Resources:
             - 'Fn::ImportValue': !Join 
                 - ':'
                 - - !Ref StackName
-                  - FargateContainerSecurityGroup
+                  - FargateContainerSg
           Subnets:
             - 'Fn::ImportValue': !Join 
                 - ':'
                 - - !Ref StackName
-                  - PublicSubnetOne
+                  - Subnet1 
             - 'Fn::ImportValue': !Join 
                 - ':'
                 - - !Ref StackName
-                  - PublicSubnetTwo
+                  - Subnet2
       TaskDefinition: !Ref TaskDefinition
       LoadBalancers:
         - ContainerName: !Ref ServiceName
