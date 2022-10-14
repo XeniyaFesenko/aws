@@ -5,7 +5,7 @@ Description: >-
 Parameters:
   StackName:
     Type: String
-    Default: Fargate-VPC-Stack
+    Default: fargateVPCStack
     Description: The name of the parent fargate networking stack
   ServiceName:
     Type: String
