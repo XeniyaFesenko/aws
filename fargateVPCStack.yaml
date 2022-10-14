@@ -37,7 +37,7 @@ Resources:
       MapPublicIpOnLaunch: false
       Tags:
         - Key: Name
-          Value:  Private-200
+          Value:  Private-100
   # Create a Subnet
   Subnet2:
      Description: This is the Pub subnet 2 for Backend Apps.  
