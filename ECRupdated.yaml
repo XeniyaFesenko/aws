@@ -4,38 +4,62 @@ Description: "Setup a ECR Repository"
 # Define the Name of Rpository 
 Mappings:
      EcrName: 
-        Dev:
+        DevBase:
           RepositoryName: 'vac01cdrecr800-base'
+        DevCave:
           RepositoryName: 'vac01cdrecr800-cave'
+        DevDelete:
           RepositoryName: 'vac01cdrecr800-delete'
+        DevParser:
           RepositoryName: 'vac01cdrecr800-parser'
+        DevPush:
           RepositoryName: 'vac01cdrecr800-push'
+        DevSearch:
           RepositoryName: 'vac01cdrecr800-search'
-          RepositoryName: 'vac01cdrecr800-sftp
-        Test:
+        DevSftp:
+          RepositoryName: 'vac01cdrecr800-sftp'
+        TestBase:
           RepositoryName: 'vac01cdrecr600-base'
+        TestCave:
           RepositoryName: 'vac01cdrecr600-cave'
+        TestDelete:
           RepositoryName: 'vac01cdrecr600-delete'
+        TestParser:
           RepositoryName: 'vac01cdrecr600-parser'
+        TestPush:
           RepositoryName: 'vac01cdrecr600-push'
+        TestSearch:
           RepositoryName: 'vac01cdrecr600-search'
-          RepositoryName: 'vac01cdrecr600-sftp
-        Prod:
+        TestSftp:
+          RepositoryName: 'vac01cdrecr600-sftp'
+        PreProdBase:
           RepositoryName: 'vac01cdrecr400-base'
+        PreProdCave:
           RepositoryName: 'vac01cdrecr400-cave'
+        PreProdDelete:
           RepositoryName: 'vac01cdrecr400-delete'
+        PreProdParser:
           RepositoryName: 'vac01cdrecr400-parser'
+        PreProdPush:
           RepositoryName: 'vac01cdrecr400-push'
+        PreProdSearch:
           RepositoryName: 'vac01cdrecr400-search'
-          RepositoryName: 'vac01cdrecr400-sftp
-        PreProd:
+        PreProdSftp:
+          RepositoryName: 'vac01cdrecr400-sftp'
+        ProdBase:
           RepositoryName: 'vac01cdrecr200-base'
+        ProdCave:
           RepositoryName: 'vac01cdrecr200-cave'
+        ProdDelete:
           RepositoryName: 'vac01cdrecr200-delete'
+        ProdParser:
           RepositoryName: 'vac01cdrecr200-parser'
+        ProdPush:
           RepositoryName: 'vac01cdrecr200-push'
+        ProdSearch:
           RepositoryName: 'vac01cdrecr200-search'
-          RepositoryName: 'vac01cdrecr200-sftp
+        ProdSftp:
+          RepositoryName: 'vac01cdrecr200-sftp'
         
 
 # Create a ECR 
@@ -48,7 +72,7 @@ Resources:
           ScanOnPush: True
       ImageTagMutability: IMMUTABLE
       RepositoryName:  
-         Fn::FindInMap: ['EcrName', 'Dev', 'RepositoryName']
+         Fn::FindInMap: ['EcrName', 'DevBase', 'RepositoryName']
 
 # Export the Output of Repository to use in other stack. 
 Outputs:
