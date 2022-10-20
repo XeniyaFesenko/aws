@@ -1,0 +1,59 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Setup a ECR Repository"
+
+# Define the Name of Rpository 
+Mappings:
+     EcrName: 
+        Dev:
+          RepositoryName: 'vac01cdrecr800-base'
+          RepositoryName: 'vac01cdrecr800-cave'
+          RepositoryName: 'vac01cdrecr800-delete'
+          RepositoryName: 'vac01cdrecr800-parser'
+          RepositoryName: 'vac01cdrecr800-push'
+          RepositoryName: 'vac01cdrecr800-search'
+          RepositoryName: 'vac01cdrecr800-sftp
+        Test:
+          RepositoryName: 'vac01cdrecr600-base'
+          RepositoryName: 'vac01cdrecr600-cave'
+          RepositoryName: 'vac01cdrecr600-delete'
+          RepositoryName: 'vac01cdrecr600-parser'
+          RepositoryName: 'vac01cdrecr600-push'
+          RepositoryName: 'vac01cdrecr600-search'
+          RepositoryName: 'vac01cdrecr600-sftp
+        Prod:
+          RepositoryName: 'vac01cdrecr400-base'
+          RepositoryName: 'vac01cdrecr400-cave'
+          RepositoryName: 'vac01cdrecr400-delete'
+          RepositoryName: 'vac01cdrecr400-parser'
+          RepositoryName: 'vac01cdrecr400-push'
+          RepositoryName: 'vac01cdrecr400-search'
+          RepositoryName: 'vac01cdrecr400-sftp
+        PreProd:
+          RepositoryName: 'vac01cdrecr200-base'
+          RepositoryName: 'vac01cdrecr200-cave'
+          RepositoryName: 'vac01cdrecr200-delete'
+          RepositoryName: 'vac01cdrecr200-parser'
+          RepositoryName: 'vac01cdrecr200-push'
+          RepositoryName: 'vac01cdrecr200-search'
+          RepositoryName: 'vac01cdrecr200-sftp
+        
+
+# Create a ECR 
+Resources:
+  ContainerRegistry:
+    Type: AWS::ECR::Repository
+    DeletionPolicy: Retain
+    Properties: 
+      ImageScanningConfiguration: 
+          ScanOnPush: True
+      ImageTagMutability: IMMUTABLE
+      RepositoryName:  
+         Fn::FindInMap: ['EcrName', 'Dev', 'RepositoryName']
+
+# Export the Output of Repository to use in other stack. 
+Outputs:
+  EcrName: 
+    Description: "ECR Container Registry name of the environment"
+    Value: !Ref ContainerRegistry
+    Export: 
+      Name: !Join [':', [!Ref 'AWS::StackName', 'RepositoryName']] 
