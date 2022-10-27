@@ -9,11 +9,11 @@ Parameters:
     Description: The name of the parent fargate networking stack
   ServiceName:
     Type: String
-    Default: mule
+    Default: nginx
     Description: Name of the ECS service
   ImageUrl:
     Type: String
-    Default: 858855954940.dkr.ecr.us-east-1.amazonaws.com/vac01cdrecr/800:latest
+    Default: nginx
     Description: >-
       The url of a docker image that contains the application process that will
       handle the traffic for this service
