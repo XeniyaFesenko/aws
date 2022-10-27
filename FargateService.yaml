@@ -13,13 +13,13 @@ Parameters:
     Description: Name of the ECS service
   ImageUrl:
     Type: String
-    Default: nginx
+    Default: 858855954940.dkr.ecr.us-east-1.amazonaws.com/vac01cdrecr/800:latest
     Description: >-
       The url of a docker image that contains the application process that will
       handle the traffic for this service
   ContainerPort:
     Type: Number
-    Default: 80
+    Default: 8080
     Description: What port number the application inside the docker container is binding to
   ContainerCpu:
     Type: Number
