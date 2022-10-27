@@ -9,7 +9,7 @@ Parameters:
     Description: The name of the parent fargate networking stack
   ServiceName:
     Type: String
-    Default: nginx
+    Default: mule
     Description: Name of the ECS service
   ImageUrl:
     Type: String
