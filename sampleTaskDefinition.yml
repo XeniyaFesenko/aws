@@ -1,0 +1,59 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: The template used to create an ECS Task definition from the ECS Console.
+Resources:
+  ECSTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      ContainerDefinitions:
+        - LogConfiguration:
+            Options:
+              awslogs-create-group: 'true'
+              awslogs-group: /ecs/mulesoft
+              awslogs-region: us-east-1
+              awslogs-stream-prefix: ecs
+            LogDriver: awslogs
+            SecretOptions: []
+          DockerLabels: {}
+          Name: muleapp
+          Image: 858855954940.dkr.ecr.us-east-1.amazonaws.com/muleapp:latest
+          Links: []
+          PortMappings:
+            - ContainerPort: '8081'
+              Protocol: tcp
+          EntryPoint: []
+          Command: []
+          EnvironmentFiles: []
+          MountPoints: []
+          VolumesFrom: []
+          DnsServers: []
+          DnsSearchDomains: []
+          ExtraHosts: []
+          DockerSecurityOptions: []
+          Ulimits: []
+          SystemControls: []
+          Essential: true
+          Cpu: 0
+      Family: mulesoft
+      NetworkMode: awsvpc
+      ExecutionRoleArn: >-
+        arn:aws:iam::858855954940:role/fargateVPCStack-ECSTaskExecutionRole-1TCCQOZDAW85N
+      PlacementConstraints: []
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: .5 vCPU
+      Memory: 2 GB
+      RuntimePlatform:
+        CpuArchitecture: X86_64
+        OperatingSystemFamily: LINUX
+      Tags:
+        - Key: ecs:taskDefinition:createdFrom
+          Value: ecs-console-v2
+        - Key: ecs:taskDefinition:stackId
+          Value:
+            Ref: AWS::StackId
+Outputs:
+  TaskDefinitionARN:
+    Description: The created task definition ARN.
+    Value:
+      Ref: ECSTaskDefinition
+
