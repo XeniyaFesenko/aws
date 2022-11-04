@@ -1,0 +1,112 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: The template used to create an ECS Service from the ECS Console.
+Parameters:
+  ECSClusterName:
+    Type: String
+    Default: Xenia-ECS
+  SecurityGroupIDs:
+    Type: CommaDelimitedList
+    Default: sg-07ca0c1f2167c044c
+  SubnetIDs:
+    Type: CommaDelimitedList
+    Default: subnet-064b1ea80181d1dfc,subnet-0ed6d1287353be524
+  VpcID:
+    Type: String
+    Default: vpc-04fefec0e70aa704c
+  LoadBalancerName:
+    Type: String
+    Default: Mulesoft-1
+Resources:
+  ECSService:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: Xenia-ECS
+      TaskDefinition: arn:aws:ecs:us-east-1:858855954940:task-definition/mulesoft:2
+      LaunchType: FARGATE
+      ServiceName: mulesoft
+      SchedulingStrategy: REPLICA
+      DesiredCount: 1
+      LoadBalancers:
+        - ContainerName: muleapp
+          ContainerPort: 8081
+          LoadBalancerName:
+            Ref: AWS::NoValue
+          TargetGroupArn:
+            Ref: TargetGroup
+      HealthCheckGracePeriodSeconds: '5'
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            Ref: SecurityGroupIDs
+          Subnets:
+            Ref: SubnetIDs
+      PlatformVersion: LATEST
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+        DeploymentCircuitBreaker:
+          Enable: true
+          Rollback: true
+      DeploymentController:
+        Type: ECS
+      Tags:
+        - Key: ecs:service:stackId
+          Value:
+            Ref: AWS::StackId
+      EnableECSManagedTags: true
+    DependsOn:
+      - Listener
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Type: application
+      Name: Mulesoft-1
+      SecurityGroups:
+        Ref: SecurityGroupIDs
+      Subnets:
+        Ref: SubnetIDs
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckPath: /test/hello
+      Name: Mulesoft-tg
+      Port: 80
+      Protocol: HTTP
+      TargetType: ip
+      HealthCheckProtocol: HTTP
+      VpcId:
+        Ref: VpcID
+  Listener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn:
+            Ref: TargetGroup
+      LoadBalancerArn:
+        Ref: LoadBalancer
+      Port: 80
+      Protocol: HTTP
+Outputs:
+  ClusterName:
+    Description: The cluster used to create the service.
+    Value:
+      Ref: ECSClusterName
+  ECSService:
+    Description: The created service.
+    Value:
+      Ref: ECSService
+  LoadBalancer:
+    Description: The created load balancer.
+    Value:
+      Ref: LoadBalancer
+  Listener:
+    Description: The created listener.
+    Value:
+      Ref: Listener
+  TargetGroup:
+    Description: The created target group.
+    Value:
+      Ref: TargetGroup
+
