@@ -1,0 +1,434 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description:  VA Project Administrators IAM Group and Policies
+
+Parameters:
+  pSamlProviderName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /vaec/iam/saml-provider
+  pSamlUrl:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /vaec/iam/saml-url
+
+Resources:
+  rDmsVpcRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: dms-vpc-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: dms.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      ManagedPolicyArns:
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonDMSVPCManagementRole
+
+  rDmsCloudWatchRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: dms-cloudwatch-logs-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: dms.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      ManagedPolicyArns:
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonDMSCloudWatchLogsRole
+
+  rProjectAdminPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: project-admin
+      Description: VAEC Project Administrator Policy
+      Path: /vaec/
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: AllowFullAccess
+            Effect: Allow
+            Action:
+            - apigateway:*
+            - appconfig:*
+            - application-autoscaling:*
+            - appstream:*
+            - athena:*
+            - autoscaling:*
+            - batch:*
+            - backup:*
+            - backup-storage:*
+            - cloudformation:*
+            - cloudwatch:*
+            - codebuild:*
+            - codecommit:*
+            - codedeploy:*
+            - codepipeline:*
+            - cognito-identity:*
+            - cognito-idp:*
+            - comprehend:*
+            - comprehendmedical:*
+            - datasync:*
+            - dlm:*
+            - dms:*
+            - dynamodb:*
+            - ebs:*
+            - ec2messages:*
+            - ecr:*
+            - ecs:*
+            - eks:*
+            - elasticache:*
+            - elasticbeanstalk:*
+            - elasticfilesystem:*
+            - elasticloadbalancing:*
+            - elasticmapreduce:*
+            - es:*
+            - events:*
+            - firehose:*
+            - fsx:*
+            - glacier:*
+            - glue:*
+            - iot:*
+            - kafka:*
+            - kafka-cluster:*
+            - kinesis:*
+            - kms:*
+            - logs:*
+            - mediaconvert:*
+            - mobiletargeting:*
+            - mq:*
+            - polly:*
+            - quicksight:*
+            - rds:*
+            - rds-db:*
+            - redshift:*
+            - redshift-data:*
+            - resource-explorer:*
+            - resource-groups:*
+            - route53:*
+            - s3:*
+            - secretsmanager:*
+            - serverlessrepo:*
+            - ses:*
+            - sms:*
+            - sms-voice:*
+            - sns:*
+            - sqs:*
+            - ssm:*
+            - ssmmessages:*
+            - states:*
+            - support:*
+            - synthetics:*
+            - textract:*
+            - transcribe:*
+            - transfer:*
+            - wafv2:*
+            - xray:*
+            Resource: '*'
+
+          - Effect: Allow
+            Action:
+            - cloudtrail:Describe*
+            - cloudtrail:List*
+            - guardduty:*Filter
+            - guardduty:*PublishingDestination
+            - guardduty:Get*
+            - guardduty:List*
+            - lambda:Get*
+            - lambda:List*
+            - lambda:CreateEventSourceMapping
+            - sts:DecodeAuthorizationMessage
+            - tag:Get*
+            - tag:UntagResources
+            - tag:TagResources
+            - trustedadvisor:RefreshCheck
+            Resource: '*'
+
+          - Sid: DenySecretsManagerForVAEC
+            Effect: Deny
+            Action:
+            - secretsmanager:*
+            Resource:
+              - !Sub arn:${AWS::Partition}:secretsmanager:*:*:secret:/vaec/*
+
+          - Sid: DenyParams
+            Effect: Deny
+            Action:
+            - ssm:DeleteParameter*
+            - ssm:PutParameter
+            - ssm:LabelParameterVersion
+            Resource:
+              - !Sub arn:${AWS::Partition}:ssm:*:*:parameter/vaec/*
+
+          - Effect: Allow
+            Action:
+            - sts:AssumeRole
+            Resource:
+              - !Sub arn:${AWS::Partition}:iam::*:role/project/project-*
+              #- !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/project/project-*
+
+          # temp for testing with Lighthouse DX
+          # - Effect: Allow
+            # Action:
+               # - sts:AssumeRoleWithWebIdentity
+            # Resource:
+               # - !Sub aws:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/oidc.eks.*
+
+          # temp for testing with Lighthouse DX ONLY
+          # - Effect: Allow
+            # Action:
+               # - iam:*OpenIDConnectProvider
+            # Resource: '*'
+
+          - Effect: Allow
+            Action:
+               - iam:*OpenIDConnectProvider*
+            Resource:
+               - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/oidc.eks.*
+
+          - Sid: AllowLambdaAccessToProject
+            Effect: Allow
+            Action: lambda:*
+            Resource:
+            - !Sub arn:${AWS::Partition}:lambda:*:${AWS::AccountId}:layer:*
+            - !Sub arn:${AWS::Partition}:lambda:*:${AWS::AccountId}:event-source-mapping:*
+            - !Sub arn:${AWS::Partition}:lambda:*:${AWS::AccountId}:function:project-*
+
+          - Sid: AllowCloudTrail
+            Effect: Allow
+            Action: cloudtrail:*
+            Resource:
+            - !Sub arn:${AWS::Partition}:cloudtrail:*:${AWS::AccountId}:trail/project-*
+
+          - Sid: DenyDeleteKMSAccess
+            Effect: Deny
+            Action:
+            - kms:DeleteAlias
+            - kms:UpdateAlias
+            # - kms:ScheduleKeyDeletion
+            - kms:DeleteImportedKeyMaterial
+            Resource: '*'
+
+          - Sid: AllowLimitedEC2Access
+            Effect: Allow
+            Action:
+            - ec2:*Console*
+            - ec2:Describe*
+            - ec2:*Fleet*
+            - ec2:*NetworkAclEntry
+            - ec2:*SecurityGroup*
+            - ec2:*KeyPair
+            - ec2:*LaunchTemplate*
+            - ec2:*NetworkInterface*
+            - ec2:*Image*
+            - ec2:*Placement*
+            - ec2:*Snapshot*
+            - ec2:*Tags
+            - ec2:*Volume*
+            - ec2:*InstanceProfile*
+            - ec2:AssignPrivateIpAddresses
+            - ec2:AssociateRouteTable
+            - ec2:CancelConversionTask
+            - ec2:CancelImportTask
+            - ec2:ConfirmProductInstance
+            - ec2:Import*
+            - ec2:ModifyInstance*
+            - ec2:MonitorInstances
+            - ec2:RebootInstances
+            - ec2:ReportInstanceStatus
+            - ec2:ResetInstanceAttribute
+            - ec2:RunInstances
+            - ec2:StartInstances
+            - ec2:StopInstances
+            - ec2:TerminateInstances
+            - ec2:UnassignPrivateIpAddresses
+            - ec2:UnmonitorInstances
+            - ec2-instance-connect:SendSerial*
+            Resource: '*'
+
+          # - Effect: Deny
+            # Action:
+            # - elasticfilesystem:CreateFileSystem
+            # Condition:
+              # Bool:
+                # elasticfilesystem:Encrypted: 'false'
+            # Resource: '*'
+
+          - Effect: Deny
+            Action:
+            - ec2:RunInstances
+            Condition:
+                 Bool:
+                   ec2:Public: true
+            Resource: '*'
+
+
+          - Effect: Allow
+            Action:
+            - acm:List*
+            - acm:Get*
+            - acm:DeleteCertificate
+            - acm:DescribeCertificate
+            - acm:RemoveTagsFromCertificate
+            - acm:ResendValidationEmail
+            - acm:AddTagsToCertificate
+            - acm:ImportCertificate
+            Resource: '*'
+
+          - Sid: DenyforProjAdmin
+            Effect: Deny
+            Action:
+            - aws-portal:*Billing
+            - s3:PutAccountPublicAccessBlock
+            Resource: '*'
+
+          - Sid: AllowCreateTrafficMirrorSession
+            Effect: Allow
+            Action:
+            - ec2:CreateTrafficMirror*
+            Resource: "*"
+
+          - Sid: AllowModifyTrafficMirrorSession
+            Effect: Allow
+            Action:
+            - ec2:ModifyTrafficMirror*
+            - ec2:DeleteTrafficMirror*
+            Resource:
+              - !Sub arn:${AWS::Partition}:ec2:*:*:traffic-mirror-filter/*
+              - !Sub arn:${AWS::Partition}:ec2:*:*:traffic-mirror-session/*
+              - !Sub arn:${AWS::Partition}:ec2:*:*:traffic-mirror-target/*
+            Condition:
+                 StringLike:
+                   ec2:ResourceTag/Name:
+                     - "project-*"
+
+          - Sid: AllowLimitedIAMAccess
+            Effect: Allow
+            Action:
+            - iam:Get*
+            - iam:List*
+            - iam:*Certificate
+            - iam:Simulate*
+            Resource: '*'
+
+          - Effect: Allow
+            Action:
+            - iam:AttachRolePolicy
+            - iam:PutRolePolicy
+            - iam:CreateServiceLinkedRole
+            Resource:
+              - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/aws-service-role/*.amazonaws.com/*
+              - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/aws-service-role/*
+            Condition:
+              StringLike:
+                iam:AWSServiceName: "*.amazonaws.com"
+
+          - Effect: Allow
+            Action:
+            - iam:DeleteServiceLinkedRole
+            - iam:GetServiceLinkedRoleDeletionStatus
+            - iam:UpdateRoleDescription
+            Resource:
+              - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/aws-service-role/*.amazonaws.com/*
+
+          - Effect: Allow
+            Action:
+            - iam:PassRole
+            Resource: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/aws-service-role/*
+            Condition:
+              StringLike:
+                iam:PassedToService:
+                 - "*.amazonaws.com"
+
+          - Effect: Allow
+            Action:
+            - iam:CreatePolicy*
+            - iam:DeletePolicy*
+            - iam:DeleteRole
+            - iam:*InstanceProfile
+            - iam:*RolePolicy
+            - iam:PassRole
+            - iam:Tag*
+            - iam:Untag*
+            Resource:
+              - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/project/project-*
+              - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:instance-profile/project/project-*
+              - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/project/project-*
+          - Effect: Allow
+
+            Action:
+            - iam:CreateRole
+            - iam:AttachRolePolicy
+            - iam:DetachRolePolicy
+            - iam:PutRolePermissionsBoundary
+            Resource:
+              - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/project/project-*
+            Condition:
+              StringEquals:
+                iam:PermissionsBoundary:
+                 - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/vaec/project-admin
+
+          - Sid: LimitedAccessToVaecRole
+            Effect: Deny
+            NotAction:
+            - iam:Get*
+            - iam:List*
+            Resource:
+              - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/vaec*
+              - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/adfs*
+
+  rProjectAdministratorRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: adfs-project-administrators
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Federated: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:saml-provider/${pSamlProviderName}
+          Action: sts:AssumeRoleWithSAML
+          Condition:
+            StringEquals:
+              SAML:aud: !Sub ${pSamlUrl}
+      ManagedPolicyArns:
+         - !Sub arn:${AWS::Partition}:iam::aws:policy/ReadOnlyAccess
+         - !Ref rProjectAdminPolicy
+
+  rProjectReadOnlyRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: adfs-project-readonly
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Federated: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:saml-provider/${pSamlProviderName}
+          Action: sts:AssumeRoleWithSAML
+          Condition:
+            StringEquals:
+              SAML:aud: !Sub ${pSamlUrl}
+      ManagedPolicyArns:
+         - !Sub arn:${AWS::Partition}:iam::aws:policy/ReadOnlyAccess
+         - !Ref rReadPolicy
+
+  rReadPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description:  AWS Project Readonly
+      Path: /vaec/
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Action:
+           - support:Describe*
+           - support:Search*
+           - artifact:Get
+           - artifact:DownloadAgreement
+          Resource: '*'
